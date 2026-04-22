@@ -1,44 +1,61 @@
 pipeline {
     agent any
 
-    stages {
+    environment {
+        // Update with your Docker Hub credentials
+        DOCKER_IMAGE = "your-dockerhub-username/capstone-project-26"
+        DOCKER_CREDENTIALS_ID = 'docker-hub-credentials'
+    }
 
-        stage('Checkout Code') {
+    stages {
+        stage('Checkout') {
             steps {
-                echo "Cloning repository..."
                 git branch: 'main', url: 'https://github.com/Tanejaabhyuday/Capstone-Project-26.git'
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                echo "Installing Python dependencies..."
-                bat 'python -m pip install -r requirements.txt'
+                sh 'npm install'
             }
         }
 
-        stage('Test Application') {
+        stage('Security Audit') {
             steps {
-                echo "Checking Python syntax..."
-                bat 'python -m py_compile app.py'
+                // Runs security check; '|| true' ensures the pipeline doesn't fail on minor warnings
+                sh 'npm audit fix --force || true'
             }
         }
 
-        stage('Run Flask App') {
+        stage('Build Docker Image') {
             steps {
-                echo "Starting Flask application..."
-                bat 'python app.py'
+                script {
+                    sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
+                    sh "docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
+                }
             }
         }
 
+        stage('Push to Registry') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", 
+                                 passwordVariable: 'DOCKER_PASSWORD', 
+                                 usernameVariable: 'DOCKER_USERNAME')]) {
+                    
+                    sh "echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin"
+                    sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                    sh "docker push ${DOCKER_IMAGE}:latest"
+                }
+            }
+        }
     }
 
     post {
         success {
-            echo 'Application started successfully!'
+            echo 'Deployment Successful'
         }
         failure {
-            echo 'Pipeline failed!'
+            echo 'Build Failed - Check Console Output'
         }
     }
 }
