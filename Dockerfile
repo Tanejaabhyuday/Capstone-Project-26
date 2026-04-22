@@ -1,8 +1,7 @@
 FROM debian:trixie-slim
-
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 1. Install System Dependencies (This includes OpenCV for Python)
+# Install system-level camera drivers and OpenCV
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
@@ -18,9 +17,8 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 COPY . .
 
-# 2. Install only Flask (since OpenCV is already installed via apt)
+# Install Flask (OpenCV is already handled by the system)
 RUN pip3 install --break-system-packages --no-cache-dir flask
 
 EXPOSE 5001
-
 CMD ["python3", "app.py"]
