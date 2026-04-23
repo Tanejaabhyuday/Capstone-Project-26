@@ -1,3 +1,10 @@
+<img width="1512" height="982" alt="ARP Spoof" src="https://github.com/user-attachments/assets/cf4d1f6d-7f3e-4d7e-9592-147a28b17c2d" />
+<img width="1470" height="956" alt="Login WebUI" src="https://github.com/user-attachments/assets/667651ac-3724-43d9-a671-b9e50473844f" />
+<img width="1470" height="956" alt="Web Feed" src="https://github.com/user-attachments/assets/b54db28e-df60-49f9-990c-89a8abe77778" />
+<img width="1512" height="982" alt="Wireshark-1" src="https://github.com/user-attachments/assets/3cc93129-f6fd-4164-b822-95e5f6a9ee34" />
+<img width="1512" height="982" alt="Wireshark-2" src="https://github.com/user-attachments/assets/10f77133-eec9-45fa-b072-1dd3ed1d543e" />
+<img width="1512" height="982" alt="Wireshark-F" src="https://github.com/user-attachments/assets/0433026e-acd7-4f98-aadd-f447a6cd517d" />
+
 
 ### **Startup Instructions for Raspberry Pi**
 
