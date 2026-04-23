@@ -52,3 +52,58 @@ sudo docker run -d --restart always --name smart-camera-live ...
 
 ### **Forensic Rationale**
 This startup procedure is designed for **System Persistence and Recovery**. By neutralizing the host OS multimedia framework before container instantiation, we prevent hardware resource hijacking and ensure a consistent GStreamer hardware pipeline for forensic data acquisition.
+
+
+
+
+
+### **Maintenance: Removing and Rebuilding**
+
+If you need to update the application code or reset the environment, follow these steps to ensure a clean rebuild without any cached "ghost" data.
+
+#### **1. Stop and Remove Existing Containers**
+Docker preserves the state of stopped containers. To reuse the name `smart-camera-live`, you must explicitly remove the old instance.
+```bash
+# Stop the running container
+sudo docker stop smart-camera-live
+
+# Remove the container record from the system
+sudo docker rm smart-camera-live
+```
+
+#### **2. Force a Fresh Image Build**
+Use the `--no-cache` flag to ensure Docker reads your latest file changes (like edits to `camera.py`) instead of using a saved version from its memory.
+```bash
+# Rebuild the image from scratch
+sudo docker build --no-cache -t smart-camera .
+```
+
+#### **3. Clean the Host Hardware State**
+If the camera fails to initialize after a restart, ensure the host OS has not reclaimed the sensor.
+```bash
+# Neutralize Pipewire middlemen
+systemctl --user stop pipewire.socket wireplumber.socket
+systemctl --user stop pipewire wireplumber
+sudo killall -9 pipewire wireplumber
+```
+
+#### **4. Standard Deployment Command**
+Once the environment is clean, launch the container with the required hardware passthrough flags.
+```bash
+sudo docker run -d \
+  --name smart-camera-live \
+  --privileged \
+  --net host \
+  --device /dev/video0:/dev/video0 \
+  --device /dev/vchiq:/dev/vchiq \
+  --device /dev/media0:/dev/media0 \
+  -v /run/udev:/run/udev:ro \
+  -v $(pwd)/forensics:/app/forensics \
+  smart-camera
+```
+
+### **The "One-Line" Reset (For Speed)**
+You can combine these into a single command string to reset everything in seconds:
+```bash
+sudo docker stop smart-camera-live && sudo docker rm smart-camera-live && sudo docker build --no-cache -t smart-camera . && sudo docker run -d --name smart-camera-live --privileged --net host --device /dev/video0:/dev/video0 --device /dev/vchiq:/dev/vchiq --device /dev/media0:/dev/media0 -v /run/udev:/run/udev:ro -v $(pwd)/forensics:/app/forensics smart-camera
+```
