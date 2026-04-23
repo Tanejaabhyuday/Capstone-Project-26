@@ -3,72 +3,520 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Camera Login</title>
+    <title>SecureVision — Login</title>
+    <meta name="description" content="Forensic-ready smart security camera system. Authorized access only.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font_family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
-            display: flex;
-            justify_content: center;
-            align-items: center;
-            height: 100vh;
+        *, *::before, *::after {
+            box-sizing: border-box;
             margin: 0;
+            padding: 0;
         }
-        .login-container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box_shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            width: 300px;
+
+        :root {
+            --bg-primary: #070b14;
+            --bg-secondary: #0d1424;
+            --accent: #00d4ff;
+            --accent-dim: rgba(0, 212, 255, 0.15);
+            --accent-glow: rgba(0, 212, 255, 0.4);
+            --red: #ff4444;
+            --red-dim: rgba(255, 68, 68, 0.15);
+            --glass-bg: rgba(255, 255, 255, 0.04);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f0f6ff;
+            --text-secondary: #8899aa;
+            --text-muted: #4a5568;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+
+        /* ── Animated background grid ── */
+        .bg-scene {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 50% -20%, rgba(0,212,255,0.10) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 100%, rgba(0,80,180,0.12) 0%, transparent 60%);
+        }
+
+        .grid-overlay {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
+            background-size: 48px 48px;
+            animation: gridShift 20s linear infinite;
+        }
+
+        @keyframes gridShift {
+            0%   { background-position: 0 0; }
+            100% { background-position: 48px 48px; }
+        }
+
+        .scan-line {
+            position: absolute;
+            top: -2px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0.4;
+            animation: scanDown 6s ease-in-out infinite;
+        }
+
+        @keyframes scanDown {
+            0%   { top: -2px; opacity: 0; }
+            10%  { opacity: 0.5; }
+            90%  { opacity: 0.5; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        /* ── Corner decorations ── */
+        .corner {
+            position: fixed;
+            width: 60px;
+            height: 60px;
+            z-index: 1;
+            opacity: 0.35;
+        }
+        .corner::before, .corner::after {
+            content: '';
+            position: absolute;
+            background: var(--accent);
+        }
+        .corner::before { width: 2px; height: 40px; }
+        .corner::after  { width: 40px; height: 2px; }
+
+        .corner-tl { top: 20px; left: 20px; }
+        .corner-tl::before { top: 0; left: 0; }
+        .corner-tl::after  { top: 0; left: 0; }
+
+        .corner-tr { top: 20px; right: 20px; transform: scaleX(-1); }
+        .corner-tr::before { top: 0; left: 0; }
+        .corner-tr::after  { top: 0; left: 0; }
+
+        .corner-bl { bottom: 20px; left: 20px; transform: scaleY(-1); }
+        .corner-bl::before { top: 0; left: 0; }
+        .corner-bl::after  { top: 0; left: 0; }
+
+        .corner-br { bottom: 20px; right: 20px; transform: scale(-1); }
+        .corner-br::before { top: 0; left: 0; }
+        .corner-br::after  { top: 0; left: 0; }
+
+        /* ── System badge top-left ── */
+        .system-badge {
+            position: fixed;
+            top: 28px;
+            left: 76px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        .system-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        /* ── Main layout ── */
+        .page-center {
+            position: relative;
+            z-index: 5;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ── Login card ── */
+        .login-card {
+            width: 420px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            box-shadow:
+                0 0 0 1px rgba(0,212,255,0.06),
+                0 40px 80px rgba(0,0,0,0.6),
+                inset 0 1px 0 rgba(255,255,255,0.07);
+            animation: cardIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(24px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .card-header {
+            padding: 36px 36px 28px;
+            border-bottom: 1px solid var(--glass-border);
             text-align: center;
         }
-        h2 {
-            color: #333;
-            margin-bottom: 20px;
+
+        .camera-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 20px;
+            background: var(--accent-dim);
+            border: 1px solid rgba(0,212,255,0.2);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
         }
-        input[type="text"],
-        input[type="password"] {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box_sizing: border-box;
+
+        .camera-icon svg {
+            width: 30px;
+            height: 30px;
+            color: var(--accent);
         }
-        button {
+
+        .camera-icon::after {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(0,212,255,0.2), transparent);
+            pointer-events: none;
+        }
+
+        .card-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+            margin-bottom: 6px;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .card-body {
+            padding: 32px 36px 36px;
+        }
+
+        /* ── Error alert ── */
+        .alert-error {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--red-dim);
+            border: 1px solid rgba(255, 68, 68, 0.25);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 22px;
+            animation: shakeIn 0.4s ease;
+        }
+
+        @keyframes shakeIn {
+            0%  { transform: translateX(-6px); opacity: 0; }
+            40% { transform: translateX(4px); }
+            70% { transform: translateX(-2px); }
+            100%{ transform: translateX(0); opacity: 1; }
+        }
+
+        .alert-error svg {
+            flex-shrink: 0;
+            width: 16px;
+            height: 16px;
+            color: var(--red);
+        }
+
+        .alert-error span {
+            font-size: 13px;
+            color: var(--red);
+            font-weight: 500;
+        }
+
+        /* ── Form fields ── */
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: var(--text-muted);
+            pointer-events: none;
+            transition: color 0.2s;
+        }
+
+        .form-input {
             width: 100%;
-            padding: 10px;
-            background-color: #007bff;
-            color: white;
+            padding: 13px 14px 13px 42px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-input:focus {
+            border-color: rgba(0, 212, 255, 0.5);
+            background: rgba(0, 212, 255, 0.05);
+            box-shadow: 0 0 0 3px rgba(0,212,255,0.08);
+        }
+
+        .form-input:focus ~ .input-icon,
+        .input-wrap:focus-within .input-icon {
+            color: var(--accent);
+        }
+
+        /* swap icon order for focus effect */
+        .input-wrap .input-icon { z-index: 1; }
+
+        /* ── Submit button ── */
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            margin-top: 8px;
+            background: linear-gradient(135deg, #0099cc, #00d4ff);
+            color: #070b14;
             border: none;
-            border-radius: 4px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: 0.04em;
             cursor: pointer;
-            font-size: 16px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 4px 24px rgba(0,212,255,0.25);
         }
-        button:hover {
-            background-color: #0056b3;
+
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 200%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transition: left 0.4s ease;
         }
-        .error {
-            color: red;
-            margin-bottom: 15px;
+
+        .btn-login:hover { transform: translateY(-1px); box-shadow: 0 8px 32px rgba(0,212,255,0.35); }
+        .btn-login:hover::before { left: 100%; }
+        .btn-login:active { transform: translateY(0); }
+
+        /* ── Footer ── */
+        .card-footer {
+            padding: 16px 36px;
+            border-top: 1px solid var(--glass-border);
+            text-align: center;
+        }
+
+        .footer-text {
+            font-size: 11px;
+            color: var(--text-muted);
+            letter-spacing: 0.06em;
+        }
+
+        /* ── Status strip at the bottom ── */
+        .status-strip {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        .strip-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .strip-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 6px var(--accent);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .strip-sep {
+            width: 1px;
+            height: 14px;
+            background: var(--text-muted);
+            opacity: 0.3;
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <h2>Security Camera Access</h2>
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                <div class="error">
-                    {{ messages[0] }}
-                </div>
-            {% endif %}
-        {% endwith %}
-        <form method="POST" action="/login">
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit">Login</button>
-        </form>
+
+    <!-- Background -->
+    <div class="bg-scene">
+        <div class="grid-overlay"></div>
+        <div class="scan-line"></div>
     </div>
+
+    <!-- Corner decorations -->
+    <div class="corner corner-tl"></div>
+    <div class="corner corner-tr"></div>
+    <div class="corner corner-bl"></div>
+    <div class="corner corner-br"></div>
+
+    <!-- System badge -->
+    <div class="system-badge">
+        <div class="pulse-dot"></div>
+        <span class="system-label">SecureVision v1.0</span>
+    </div>
+
+    <!-- Login card -->
+    <div class="page-center">
+        <div class="login-card">
+
+            <div class="card-header">
+                <div class="camera-icon">
+                    <!-- Camera SVG icon -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 7l-7 5 7 5V7z"/>
+                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                    </svg>
+                </div>
+                <h1 class="card-title">Security Camera Access</h1>
+                <p class="card-subtitle">Authorized personnel only · All access is logged</p>
+            </div>
+
+            <div class="card-body">
+
+                <!-- Flash messages (functionality unchanged) -->
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <div class="alert-error" role="alert">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            <span>{{ messages[0] }}</span>
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST" action="/login" id="login-form">
+
+                    <div class="form-group">
+                        <label class="form-label" for="username">Username</label>
+                        <div class="input-wrap">
+                            <input
+                                id="username"
+                                class="form-input"
+                                type="text"
+                                name="username"
+                                placeholder="Enter your username"
+                                autocomplete="username"
+                                required
+                            >
+                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="password">Password</label>
+                        <div class="input-wrap">
+                            <input
+                                id="password"
+                                class="form-input"
+                                type="password"
+                                name="password"
+                                placeholder="Enter your password"
+                                autocomplete="current-password"
+                                required
+                            >
+                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btn-login" class="btn-login">Authenticate</button>
+
+                </form>
+            </div>
+
+            <div class="card-footer">
+                <span class="footer-text">Forensic logging active · Unauthorized access is a criminal offence</span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Bottom status strip -->
+    <div class="status-strip">
+        <div class="strip-item"><div class="strip-dot"></div>System Online</div>
+        <div class="strip-sep"></div>
+        <div class="strip-item">AES-256 Encrypted</div>
+        <div class="strip-sep"></div>
+        <div class="strip-item">Forensic Logging Active</div>
+    </div>
+
 </body>
 </html>
