@@ -1,3 +1,4 @@
+
 ### **Startup Instructions for Raspberry Pi**
 
 
@@ -174,10 +175,8 @@ To secure the forensic pipeline, the following controls are recommended:
 3.  **Static ARP:** Use static entries for critical IoT sensors to prevent spoofing.
 ```
 
-### **Instructions for your GitHub:**
 1.  Create a new file in your repo called `ATTACK_README.md`.
 2.  Paste the code above.
 3.  **Crucial:** Take a screenshot of your **Wireshark window** showing the `POST` packet and the password. Upload that image to your repo as `sniff_evidence.png`.
 4.  Change the line `` in the text above to `![Sniff Evidence](./sniff_evidence.png)` so the image shows up on GitHub.
 
-**Do you have the Wireshark screenshot ready to upload, or do you need help identifying the exact line in Wireshark to capture?**
